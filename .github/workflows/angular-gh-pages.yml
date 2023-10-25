@@ -1,0 +1,57 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Deploy Angular app to GitHub Pages
+
+on:
+  workflow_call:
+    inputs:
+      ANGULAR_BUILD_DIR:
+        description: "Angular project build folder path"
+        required: true
+        type: string
+
+env:
+  DEPLOY_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+  #ANGULAR_BUILD_DIR: ./dist/my-angular-app/
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+    permissions:
+      contents: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+      - name: Installing project dependencies
+        run: pnpm install
+      - name: Building project
+        run: pnpm build:prod  --base-href ${{env.DEPLOY_URL}}
+        # We can set both the below options for deploy url both are valid
+        # --base-href /${{ github.event.repository.name }}/
+        # --base-href https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+      - name: Deploy - Deploying from ${{env.ANGULAR_BUILD_DIR}}
+        uses: peaceiris/actions-gh-pages@v3.9.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{env.ANGULAR_BUILD_DIR}} #./dist/my-angular-app/
+          destination_dir: ./${{ env.DOC_VERSION }}
+          commit_message: ${{ github.event.head_commit.message }}
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
+      - name: Deploy url
+        run: echo ${{env.DEPLOY_URL}}
