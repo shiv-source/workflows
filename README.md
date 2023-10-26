@@ -1,6 +1,6 @@
 # workflows
 
-### Deploy build to angular
+### Deploy angular build to GitHub Pages with pnpm package manager and pnpm cache
 
 ```yml
 name: Deploy Angular app with PNPM to GitHub Pages
