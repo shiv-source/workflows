@@ -46,7 +46,7 @@ jobs:
           cache: "pnpm"
       - name: Installing project dependencies
         run: pnpm install
-      - name: Building project
+      - name: Building project with command ${{ inputs.ANGULAR_BUILD_COMMAND }}
         run: ${{ inputs.ANGULAR_BUILD_COMMAND }} --base-href ${{env.DEPLOY_URL}}
         # We can set both the below options for deploy url both are valid
         # --base-href /${{ github.event.repository.name }}/
