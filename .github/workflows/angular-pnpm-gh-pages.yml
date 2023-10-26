@@ -1,7 +1,8 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
-name: Deploy Angular app to GitHub Pages
+name: Deploy Angular app to GitHub Pages using PNPM
+# uses: : shiv-source/workflows/.github/workflows/angular-gh-pages.yml@master
 
 on:
   workflow_call:
@@ -10,21 +11,27 @@ on:
         description: "Angular project build folder path"
         required: true
         type: string
+      ANGULAR_BUILD_COMMAND:
+        description: "Angular project build folder path"
+        type: string
+        default: pnpm build
 
-env:
-  DEPLOY_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
-  #ANGULAR_BUILD_DIR: ./dist/my-angular-app/
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    env:
+      DEPLOY_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
     strategy:
       matrix:
         node-version: [18.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-    permissions:
-      contents: write
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
     steps:
@@ -40,15 +47,15 @@ jobs:
       - name: Installing project dependencies
         run: pnpm install
       - name: Building project
-        run: pnpm build:prod  --base-href ${{env.DEPLOY_URL}}
+        run: ${{ inputs.ANGULAR_BUILD_COMMAND }} --base-href ${{env.DEPLOY_URL}}
         # We can set both the below options for deploy url both are valid
         # --base-href /${{ github.event.repository.name }}/
         # --base-href https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
-      - name: Deploy - Deploying from ${{env.ANGULAR_BUILD_DIR}}
+      - name: Deploy - Deploying from ${{ inputs.ANGULAR_BUILD_DIR }}
         uses: peaceiris/actions-gh-pages@v3.9.3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ${{env.ANGULAR_BUILD_DIR}} #./dist/my-angular-app/
+          publish_dir: ${{ inputs.ANGULAR_BUILD_DIR }} #./dist/my-angular-app/
           destination_dir: ./${{ env.DOC_VERSION }}
           commit_message: ${{ github.event.head_commit.message }}
           user_name: "github-actions[bot]"
